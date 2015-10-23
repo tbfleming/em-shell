@@ -1,0 +1,3 @@
+#!/bin/sh
+mkdir -p bin/obj
+cp ../em-busybox/busybox_unstripped bin/obj/busybox.o && emcc bin/obj/busybox.o -o bin/busybox.js --pre-js js/pre.js -g --js-opts 0 
