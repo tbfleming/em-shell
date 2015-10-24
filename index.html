@@ -5,3 +5,23 @@
 <script>
     System.import('js/console.js');
 </script>
+<body>
+    <div id="console"></div>
+    <br />
+    <div>
+        <h1>Hints</h1>
+        <ul>
+            <li>"ls" doesn't work, but tab-completion does.</li>
+            <li>Try "cd &lt;tab&gt;" to see the root directory contents</li>
+            <li>Up and Down arrows move through history</li>
+            <li>Scrollback: use mouse wheel or Shift+PgUp, Shift+PgDn</li>
+            <li>If you leave it idle for a couple minutes then a request will time out and it will hang</li>
+            <li>Implementation details and source are on <a href="https://github.com/tbfleming/em-shell">GitHub</a></li>
+        </ul>
+        <h1>Examples</h1><code><pre>
+echo "test file" > myfile
+read var < myfile
+echo $var
+</pre></code>
+    </div>
+</body>

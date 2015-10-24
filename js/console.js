@@ -86,5 +86,5 @@ function serviceConnected() {
     new Worker("boot-worker.js");
 }
 
-term.open(document.body);
+term.open(document.getElementById('console'));
 startService();

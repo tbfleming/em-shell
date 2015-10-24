@@ -1,5 +1,4 @@
 .terminal {
-    float: left;
     border: black solid 5px;
     font-family: "DejaVu Sans Mono", "Liberation Mono", monospace;
     font-size: 20px;
@@ -10,4 +9,8 @@
 .terminal-cursor {
     color: black;
     background: white;
+}
+
+li,code {
+    font-size: 2em;
 }
