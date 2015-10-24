@@ -1,3 +1,22 @@
+# Try it out!
+
+Go to https://tbfleming.github.io/em-shell/
+
+# Current status
+* Runs on Chrome
+* Firefox doesn't work yet
+  * bug in my service worker detection code? I copied and pasted from MDN.
+* Only some built-in commands work
+* Crashes after a couple minutes of inactivity
+* Gets confused when the terminal page has more than 1 tab or window opened on it
+
+# How it works
+* busybox compiled by emscripten
+  * Doesn't use Emterpreter or Asyncify!
+* busybox runs in a web worker
+* The web worker communicates with the UI through a service worker
+* The web worker uses synchronous (blocking) XMLHttpRequest to wait for terminal input
+
 # Build instructions
 
 ## Prerequisites
