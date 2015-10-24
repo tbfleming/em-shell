@@ -76,13 +76,12 @@ function serviceConnected() {
 
     let messageChannel = new MessageChannel();
     messageChannel.port1.onmessage = e => {
-        term.write(e.data);
+        term.write(e.data.replace('\n', '\r\n'));
     };
     navigator.serviceWorker.controller.postMessage({
         'command': 'consoleSetOutputPort',
         'port': messageChannel.port2}, 
         [messageChannel.port2]);
-
 
     new Worker("boot-worker.js");
 }

@@ -4,5 +4,5 @@ var main;
 
 System.import('js/worker.js').then(function (m) {
     main = m;
-    importScripts('bin/busybox.js');
+    importScripts('bin/busybox');
 });

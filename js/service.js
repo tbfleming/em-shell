@@ -41,9 +41,11 @@ self.addEventListener('message', function (e) {
         consoleOutputPort.postMessage(consoleOutput);
         consoleOutput = '';
     } else if (e.data.command == 'consoleKeyPress') {
-        if (consoleInputWaiting.length)
-            consoleInputWaiting.splice(0, 1)[0](new Response(e.data.consoleKeyPress));
-        else
+        if (consoleInputWaiting.length) {
+            for(let w of consoleInputWaiting)
+                w(new Response(e.data.consoleKeyPress));
+            consoleInputWaiting = [];
+        } else
             consoleInput += e.data.consoleKeyPress;
     }
 });

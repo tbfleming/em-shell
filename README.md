@@ -11,8 +11,6 @@
 ## Procedure
     git clone https://github.com/tbfleming/em-shell.git
     git clone https://github.com/tbfleming/em-busybox.git
-    cd em-busybox
-    make KBUILD_VERBOSE=1 SKIP_STRIP=y
-    cd ../em-shell
+    cd em-shell
     jspm install
-    js/build
+    js/build-busybox

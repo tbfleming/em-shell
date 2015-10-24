@@ -1,0 +1,3 @@
+#!/bin/sh
+mkdir -p bin
+sh -c "cd ../em-busybox && make -j8 KBUILD_VERBOSE=1 ARCH=em CROSS_COMPILE=em LDFLAGS=\"--pre-js ../em-shell/js/pre.js -g --js-opts 0\"" && mkdir -p bin && cp ../em-busybox/busybox bin
