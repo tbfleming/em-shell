@@ -1,3 +1,10 @@
 #!/bin/sh
 mkdir -p bin
-sh -c "cd ../em-busybox && make -j8 KBUILD_VERBOSE=1 ARCH=em CROSS_COMPILE=em LDFLAGS=\"--pre-js ../em-shell/js/pre.js -g --js-opts 0\"" && mkdir -p bin && cp ../em-busybox/busybox bin
+
+export CFLAGS="-include `readlink -f runtime/em-shell.h` -g"
+export EM_LDFLAGS="--pre-js ../em-shell/js/pre.js --js-opts 0 `readlink -f runtime/em-shell.c`"
+export KBUILD_VERBOSE=1
+export ARCH=em 
+export CROSS_COMPILE=em
+
+sh -c "cd ../em-busybox && make -j8 && mkdir -p bin" && cp ../em-busybox/busybox bin
