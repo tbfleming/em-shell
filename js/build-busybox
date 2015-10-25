@@ -2,7 +2,7 @@
 mkdir -p bin
 
 export CFLAGS="-include `readlink -f runtime/em-shell.h` -o2"
-export EM_LDFLAGS="--js-opts 0 -o2 `readlink -f runtime/em-shell.c` --js-library `readlink -f runtime/em-shell.js`"
+export EM_LDFLAGS="--js-opts 1 -o2 `readlink -f runtime/em-shell.c` --js-library `readlink -f runtime/em-shell.js`"
 export KBUILD_VERBOSE=1
 export ARCH=em 
 export CROSS_COMPILE=em
