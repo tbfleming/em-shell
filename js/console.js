@@ -63,7 +63,7 @@ function startService() {
 }
 
 function spawn(file, args) {
-    let w = new Worker("boot-worker.js");
+    let w = new Worker("worker.js");
     w.postMessage({file: file, args: args});
 }
 
