@@ -11,17 +11,30 @@
     <div>
         <h1>Hints</h1>
         <ul>
-            <li>"ls" doesn't work, but tab-completion does.</li>
-            <li>Try "cd &lt;tab&gt;" to see the root directory contents</li>
+            <li>Tab completion partially works</li>
             <li>Up and Down arrows move through history</li>
             <li>Scrollback: use mouse wheel or Shift+PgUp, Shift+PgDn</li>
-            <li>If you leave it idle for a couple minutes then a request will time out and it will hang</li>
+            <li>If you leave it idle for a couple minutes then it will hang</li>
+            <li>
+                vfork-exec commands:<ul>
+                    <li>The shell does not wait for these to exit before showing a new prompt</li>
+                    <li>Each process gets a new filesystem (ram based)</li>
+                    <li>New processes live forever until the page is closed or refreshed</li>
+                    <li>Pipes don't work</li>
+                    <li>Redirection only works for built-in commands, not for vfork-exec commands</li>
+                    <li>Current set: <b>basename, cal, clear, dirname, ls, seq</b></li>
+                </ul>
+            </li>
             <li>Implementation details and source are on <a href="https://github.com/tbfleming/em-shell">GitHub</a></li>
         </ul>
-        <h1>Examples</h1><code><pre>
-echo "test file" > myfile
-read var < myfile
-echo $var
-</pre></code>
+        <h1>Examples</h1><code>
+            <pre>
+ls -lR
+echo "test file" > myfile   # create file
+read var < myfile           # read file
+echo $var                   # show file content
+ls -la                      # can't see myfile (different filesystem)
+</pre>
+        </code>
     </div>
 </body>
