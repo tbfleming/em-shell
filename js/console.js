@@ -84,7 +84,7 @@ function serviceConnected() {
         if (e.data.command == 'writeConsole')
             term.write(e.data.msg.replace('\n', '\r\n'));
         else if(e.data.command == 'spawn') {
-            spawn('/bin/busybox', e.data.args); // TODO: process e.data.file
+            spawn('/bin/busybox.js', e.data.args); // TODO: process e.data.file
             e.data.port.postMessage(0); // TODO: report real status
         }
     };
@@ -94,7 +94,7 @@ function serviceConnected() {
         'port': messageChannel.port2}, 
         [messageChannel.port2]);
 
-    spawn('/bin/busybox', ['/bin/sh']);
+    spawn('/bin/busybox.js', ['/bin/sh']);
 }
 
 term.open(document.getElementById('console'));
