@@ -46,5 +46,10 @@ export function start(m, msg) {
         };
     };
 
-    importScripts(msg.file);
+    // TODO: notify service of start and termination
+    try {
+        importScripts(msg.file);
+    } catch(e) {
+    }
+    self.close();
 }
