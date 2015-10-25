@@ -62,6 +62,11 @@ function startService() {
     }
 }
 
+function spawn(file, args) {
+    let w = new Worker("boot-worker.js");
+    w.postMessage({file: file, args: args});
+}
+
 function serviceConnected() {
     log('Connecting console to service');
 
@@ -79,15 +84,17 @@ function serviceConnected() {
         if (e.data.command == 'writeConsole')
             term.write(e.data.msg.replace('\n', '\r\n'));
         else if(e.data.command == 'spawn') {
-            e.data.port.postMessage(9);
+            spawn('/bin/busybox', e.data.args); // TODO: process e.data.file
+            e.data.port.postMessage(0); // TODO: report real status
         }
     };
+
     navigator.serviceWorker.controller.postMessage({
         'command': 'setMasterPort',
         'port': messageChannel.port2}, 
         [messageChannel.port2]);
 
-    new Worker("boot-worker.js");
+    spawn('/bin/busybox', ['/bin/sh']);
 }
 
 term.open(document.getElementById('console'));

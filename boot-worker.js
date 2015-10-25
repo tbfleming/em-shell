@@ -1,8 +1,11 @@
 importScripts('jspm_packages/system.js', 'config.js');
 
-var main;
-
-System.import('js/worker.js').then(function (m) {
-    main = m;
-    importScripts('bin/busybox');
+var Module;
+addEventListener('message', function (e) {
+    if (!e.isTrusted || Module)
+        return;
+    Module = {};
+    System.import('js/worker.js').then(function (m) {
+        m.start(Module, e.data);
+    });
 });

@@ -14,12 +14,37 @@ function syncPost(url, data) {
     req.send(data);
 }
 
-export function print(x) {
+function print(x) {
     syncPost('service/writeConsole', x);
 }
 
-export function stdin() {
+function stdin() {
     return syncGet('service/readConsole');
 }
 
-print('Worker started\r\n');
+let Module;
+export function start(m, msg) {
+    Module = m;
+    Module.thisProgram = msg.args.shift();
+    Module.arguments = msg.args;
+    Module.print = print;
+    Module.printErr = print;
+    Module.preInit = () => {
+        TTY.ttys[FS.makedev(5, 0)].ops = {
+            get_char: tty => {
+                if (!tty.input.length) {
+                    var result = stdin();
+                    if (!result)
+                        return null;
+                    tty.input = intArrayFromString(result, true);
+                }
+                return tty.input.shift();
+            }, put_char: (tty, val) => {
+                print(String.fromCharCode(val));
+            }, flush: tty => {
+            }
+        };
+    };
+
+    importScripts(msg.file);
+}
