@@ -76,10 +76,14 @@ function serviceConnected() {
 
     let messageChannel = new MessageChannel();
     messageChannel.port1.onmessage = e => {
-        term.write(e.data.replace('\n', '\r\n'));
+        if (e.data.command == 'writeConsole')
+            term.write(e.data.msg.replace('\n', '\r\n'));
+        else if(e.data.command == 'spawn') {
+            e.data.port.postMessage(9);
+        }
     };
     navigator.serviceWorker.controller.postMessage({
-        'command': 'consoleSetOutputPort',
+        'command': 'setMasterPort',
         'port': messageChannel.port2}, 
         [messageChannel.port2]);
 
