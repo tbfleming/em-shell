@@ -1,1 +1,0 @@
-importScripts('js/service.js');

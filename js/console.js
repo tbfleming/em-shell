@@ -37,7 +37,7 @@ function startService() {
     if ('serviceWorker' in navigator) {
         if(verboseService)
             log('Registering service worker...');
-        navigator.serviceWorker.register('boot-service.js', { scope: './' }).then(reg => {
+        navigator.serviceWorker.register('service.js', { scope: './' }).then(reg => {
             let check = () => {
                 if(reg.active.state !== 'activated') {
                     reg.active.onstatechange = check;
@@ -58,7 +58,7 @@ function startService() {
             };
             navigator.serviceWorker.ready.then(check);
         }).catch(function(error) {
-            log('Registration failed with ' + error);
+            log('Service registration failed: ' + error);
         });
     } else {
         log('error: this browser does not support service workers');
