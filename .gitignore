@@ -1,4 +1,5 @@
-jspm_packages
+*jspm_packages
 node_modules
 busybox.js
 busybox.o
+bin
