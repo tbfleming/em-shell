@@ -1,10 +1,10 @@
 'use strict';
 
-let prefix = this.registration.scope + 'service/';
-let consoleInput = '';
-let consoleInputWaiting = [];
-let consoleOutput = '';
-let masterPort = null;
+var prefix = this.registration.scope + 'service/';
+var consoleInput = '';
+var consoleInputWaiting = [];
+var consoleOutput = '';
+var masterPort = null;
 
 console.log('starting');
 
@@ -14,7 +14,7 @@ this.addEventListener('fetch', function (e) {
     //writeConsole('fetch ' + e.request.url + '\r\n');
     if (!e.request.url.startsWith(prefix))
         return;
-    let path = e.request.url.substring(prefix.length);
+    var path = e.request.url.substring(prefix.length);
 
     if (path === 'check')
         e.respondWith(new Response('connected'));
@@ -32,9 +32,9 @@ this.addEventListener('fetch', function (e) {
         e.respondWith(new Response(''));
     } else if (path === 'spawn') {
         e.respondWith(new Promise(function (resolve, reject) {
-            e.request.json().then(j => {
-                let messageChannel = new MessageChannel();
-                messageChannel.port1.onmessage = e => resolve(new Response(e.data));
+            e.request.json().then(function (j) {
+                var messageChannel = new MessageChannel();
+                messageChannel.port1.onmessage = function (e) { resolve(new Response(e.data)) };
                 j.command = path;
                 j.port = messageChannel.port2;
                 masterPort.postMessage(j, [messageChannel.port2]);
@@ -53,7 +53,7 @@ self.addEventListener('message', function (e) {
         consoleOutput = '';
     } else if (e.data.command == 'consoleKeyPress') {
         if (consoleInputWaiting.length) {
-            for(let w of consoleInputWaiting)
+            for(var w of consoleInputWaiting)
                 w(new Response(e.data.consoleKeyPress));
             consoleInputWaiting = [];
         } else

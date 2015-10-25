@@ -4,6 +4,8 @@ import Terminal from 'term';
 console.log(Terminal);
 
 var term = new Terminal({});
+let verboseService = false;
+let activeService = null;
 
 //let line = '';
 //term.on('data', function (data) {
@@ -33,44 +35,46 @@ function log(msg) {
 
 function startService() {
     if ('serviceWorker' in navigator) {
-        log('Registering service worker...');
-        navigator.serviceWorker.register('boot-service.js', { scope: './' }).then(reg => {
-            log('Registration succeeded. Scope is ' + reg.scope);
-            log('Checking service...');
-            fetch('service/check')
-                .then(r => {
-                    if(r.status === 200)
-                        return r.text();
-                    else
-                        throw r.status + ' ' + r.statusText;
-                })
-                .then(r => {
-                    log('Received: ' + r);
-                    if(r === 'connected')
-                        serviceConnected();
+        if(verboseService)
+            log('Registering service worker...');
+        navigator.serviceWorker.register('service.js', { scope: './' }).then(reg => {
+            let check = () => {
+                if(reg.active.state !== 'activated') {
+                    reg.active.onstatechange = check;
+                    verboseService = true;
+                }
+                if(verboseService)
+                    log('Service worker: ' + reg.active.state);
+                if(reg.active.state === 'activated' && !activeService) {
+                    activeService = reg.active;
+                    if(navigator.serviceWorker.controller === activeService)
+                        serviceActivated();
                     else {
+                        log('New service worker installed');
                         log('Reloading page...');
                         setTimeout(() => location.reload(), 1500);
                     }
-                })
-                .catch(e => log(e));
+                }
+            };
+            navigator.serviceWorker.ready.then(check);
         }).catch(function(error) {
-            log('Registration failed with ' + error);
+            log('Service registration failed: ' + error);
         });
     } else {
         log('error: this browser does not support service workers');
     }
-}
+} // startService()
 
 function spawn(file, args) {
     let w = new Worker("worker.js");
     w.postMessage({file: file, args: args});
 }
 
-function serviceConnected() {
-    log('Connecting console to service');
-
-    fetch('service/writeConsole', {method: 'post', body: 'Testing service/writeConsole\r\n'});
+function serviceActivated() {
+    if(verboseService) {
+        log('Connecting console to service');
+        fetch('service/writeConsole', {method: 'post', body: 'Testing service/writeConsole\r\n'});
+    }
 
     term.on('data', data => {
         navigator.serviceWorker.controller.postMessage({
