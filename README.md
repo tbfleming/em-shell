@@ -33,4 +33,6 @@ Go to https://tbfleming.github.io/em-shell/
     git clone https://github.com/tbfleming/em-busybox.git
     cd em-shell
     jspm install
-    js/build-busybox
+    either:
+        js/build-busybox
+        js/build-busybox-dbg
