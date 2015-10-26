@@ -83,7 +83,7 @@ function processCmd(resolve, cmd) {
         }));
     } else if (cmd.command === 'spawn') {
         var messageChannel = new MessageChannel();
-        messageChannel.port1.onmessage = function (e) { resolve(jsonReponse(cmd)) };
+        messageChannel.port1.onmessage = function (e) { resolve(jsonReponse(e.data)) };
         cmd.port = messageChannel.port2;
         masterPort.postMessage(cmd, [messageChannel.port2]);
     } else {

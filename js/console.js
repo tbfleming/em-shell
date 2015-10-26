@@ -89,7 +89,7 @@ function serviceActivated() {
         if (e.data.command == 'writeConsole')
             term.write(e.data.text.replace('\n', '\r\n'));
         else if(e.data.command == 'spawn') {
-            e.data.port.postMessage(JSON.stringify({command:'ok', errno:0})); // TODO: report real status
+            e.data.port.postMessage({command:'ok', errno:0}); // TODO: report real status
             e.data.port = null;
             spawn('bin/busybox', e.data); // TODO: process e.data.file
         }
