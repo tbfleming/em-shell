@@ -13,14 +13,6 @@ mergeInto(LibraryManager.library, {
             args.push(Pointer_stringify(arg));
             argv += 4;
         }
-
-        var req = new XMLHttpRequest();
-        req.open("POST", 'service/spawn', false);
-        req.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-        req.send(JSON.stringify({ file: file, args: args }));
-        if (req.status === 200) {
-            return req.responseText | 0;
-        } else
-            return ERRNO_CODES.ENOMEM;
+        return sendSyncCmd({ command: 'spawn', file: file, args: args }).errno;
     }
 });

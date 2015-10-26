@@ -1,25 +1,48 @@
 'use strict';
 
-function syncGet(url) {
-    var req = new XMLHttpRequest();
-    req.open("GET", url, false);
-    req.send();
-    if (req.status === 200)
-        return req.responseText;
+var pid = 0;
+var cookie = 0;
+var terminated = false;
+
+function terminateWorker() {
+    terminated = true;
+    abort();
 }
 
-function syncPost(url, data) {
+function sendSyncCmd(cmd) {
+    if (terminated)
+        terminateWorker();
+    cmd.pid = pid;
+    cmd.cookie = cookie;
     var req = new XMLHttpRequest();
-    req.open("POST", url, false);
-    req.send(data);
+    req.open('POST', 'service', false);
+    req.send(JSON.stringify(cmd));
+    if (req.status !== 200) {
+        console.log('worker: received status:', req.status, ' for request:', cmd);
+        terminateWorker();
+    }
+
+    console.log(cmd.command);
+    console.log(req.responseText);
+
+    var result = JSON.parse(req.responseText);
+    if (result.command === 'terminate') {
+        console.log('worker: received terminateWorker, reason: "' + result.reason + '" for request:', cmd);
+        terminateWorker();
+    } else if (result.command === 'ok') {
+        return result;
+    } else {
+        console.log('worker: received unrecognized result:', result, 'for request:', cmd);
+        terminateWorker();
+    }
 }
 
 function print(x) {
-    syncPost('service/writeConsole', x);
+    sendSyncCmd({ command: 'writeConsole', text: x });
 }
 
 function stdin() {
-    return syncGet('service/readConsole');
+    return sendSyncCmd({ command: 'readConsole' }).text;
 }
 
 var consoleInputBuffer = [];
@@ -59,6 +82,22 @@ var Module;
 addEventListener('message', function (e) {
     if (!e.isTrusted || Module)
         return;
+
+    console.log(e.data);
+    pid = e.data.pid;
+    cookie = e.data.cookie;
+
+    if (!pid) {
+        console.log('worker: fork from pid 0');
+        var result = sendSyncCmd({ command: 'fork' });
+        pid = result.childPid;
+        cookie = result.childCookie;
+    }
+    console.log('worker: pid', pid);
+
+    // TODO:
+    // if (e.data.releaseWaitingExec)
+    //     sendSyncCmd({ command: 'releaseWaitingExec' });
 
     Module = {
         thisProgram: e.data.args.shift(),

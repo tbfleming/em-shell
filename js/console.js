@@ -29,8 +29,8 @@ term.on('title', function (title) {
     document.title = title;
 });
 
-function log(msg) {
-    term.write(msg + '\r\n');
+function log(text) {
+    term.write(text + '\r\n');
 }
 
 function startService() {
@@ -65,40 +65,49 @@ function startService() {
     }
 } // startService()
 
-function spawn(file, args) {
+function spawn(file, cmd) {
     let w = new Worker("worker.js");
-    w.postMessage({file: file, args: args});
+    cmd.file = file;
+    w.postMessage(cmd);
 }
 
 function serviceActivated() {
-    if(verboseService) {
+    if(verboseService)
         log('Connecting console to service');
-        fetch('service/writeConsole', {method: 'post', body: 'Testing service/writeConsole\r\n'});
-    }
 
     term.on('data', data => {
         navigator.serviceWorker.controller.postMessage({
+            'pid': 0,
+            'cookie': 0,
             'command': 'consoleKeyPress',
-            'consoleKeyPress': data
+            'text': data
         });
     });
 
     let messageChannel = new MessageChannel();
     messageChannel.port1.onmessage = e => {
         if (e.data.command == 'writeConsole')
-            term.write(e.data.msg.replace('\n', '\r\n'));
+            term.write(e.data.text.replace('\n', '\r\n'));
         else if(e.data.command == 'spawn') {
-            spawn('bin/busybox', e.data.args); // TODO: process e.data.file
-            e.data.port.postMessage(0); // TODO: report real status
+            e.data.port.postMessage(JSON.stringify({command:'ok', errno:0})); // TODO: report real status
+            e.data.port = null;
+            spawn('bin/busybox', e.data); // TODO: process e.data.file
         }
     };
 
     navigator.serviceWorker.controller.postMessage({
+        'pid': 0,
+        'cookie': 0,
         'command': 'setMasterPort',
         'port': messageChannel.port2}, 
         [messageChannel.port2]);
 
-    spawn('bin/busybox', ['/bin/sh']);
+    spawn('bin/busybox', {
+        'pid': 0,
+        'cookie': 0,
+        'command': 'spawn',
+        'file': 'bin/busybox',
+        'args': ['/bin/sh']});
 }
 
 term.open(document.getElementById('console'));
