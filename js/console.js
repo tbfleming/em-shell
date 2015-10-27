@@ -88,7 +88,9 @@ require(["js/term.js-0.0.7/src/term.js"], function () {
         let messageChannel = new MessageChannel();
         messageChannel.port1.onmessage = e => {
             if (e.data.command == 'writeConsole') {
-                if (!receivedServiceVersion && e.data.serviceVersion != serviceVersion) {
+                if (receivedServiceVersion)
+                    term.write(e.data.text.replace('\n', '\r\n'));
+                else if (e.data.serviceVersion != serviceVersion) {
                     log('Expected service worker version: ' + serviceVersion);
                     log('Received service worker version: ' + e.data.serviceVersion + '\r\n');
                     log('Leave this page then come back to refresh versions, or');
@@ -97,6 +99,13 @@ require(["js/term.js-0.0.7/src/term.js"], function () {
                 } else {
                     receivedServiceVersion = true;
                     term.write(e.data.text.replace('\n', '\r\n'));
+                    spawn('bin/busybox', {
+                        'pid': 0,
+                        'cookie': 0,
+                        'command': 'spawn',
+                        'file': 'bin/busybox',
+                        'args': ['/bin/sh']
+                    });
                 }
             } else if (e.data.command == 'spawn') {
                 spawn('bin/busybox', e.data); // TODO: process e.data.file
@@ -109,13 +118,6 @@ require(["js/term.js-0.0.7/src/term.js"], function () {
             'command': 'setMasterPort',
             'port': messageChannel.port2}, 
             [messageChannel.port2]);
-
-        spawn('bin/busybox', {
-            'pid': 0,
-            'cookie': 0,
-            'command': 'spawn',
-            'file': 'bin/busybox',
-            'args': ['/bin/sh']});
     }
 
     term.open(document.getElementById('console'));

@@ -1,13 +1,13 @@
 'use strict';
 
-var serviceVersion = '0.0.2';
+var serviceVersion = '0.0.4';
 var serviceUrl = this.registration.scope + 'service';
 var consoleInput = '';
 var consoleInputWaiting = [];
 var consoleOutput = '';
 var masterPort = null;
 
-console.log('starting');
+console.log('service: starting');
 
 var processes = [];
 processes = [new Process(0), new Process(0)];
@@ -22,11 +22,12 @@ function Process(parentPid) {
     this.status = 'running'; // running, zombie
     this.childPids = [];
     this.spawnRequests = [];
+    this.msgQueue = [];
 }
 
 // Verify a process is valid. The cookie isn't for security; it's for making sure
 // a process didn't outlive the service.
-function processGood(pid, cookie) {
+function verifyProcess(pid, cookie) {
     pid = pid | 0;
     return (
         pid < processes.length &&
@@ -35,19 +36,30 @@ function processGood(pid, cookie) {
         processes[pid].status !== 'zombie');
 }
 
-function processDied(pid) {
+function processDied(pid, exitCode) {
     var process = processes[pid];
     process.status = 'zombie';
 
-    // TODO: process group?
+    // TODO: process groups?
     for(childPid of process.childPids)
         processes[childPid].parentPid = 1;
 
-    // TODO: notify parent
+    if (process.parentPid > 1) {
+        var parentProcess = processes[process.parentPid];
+        if (parentProcess && parentProcess.status !== 'zombie')
+            parentProcess.msgQueue.push({ command: 'childDied', childPid: 'pid', exitCode: exitCode });
+    }
 }
 
-function jsonReponse(j) {
-    return new Response(JSON.stringify(j));
+function jsonReponse(msg) {
+    return new Response(JSON.stringify(msg));
+}
+
+function jsonResponseWithQueuedMessages(process, msg) {
+    let q = process.msgQueue;
+    process.msgQueue = [];
+    q.push(msg);
+    return jsonReponse(q);
 }
 
 function processCmd(resolve, cmd) {
@@ -59,47 +71,49 @@ function processCmd(resolve, cmd) {
     } else if (cmd.command == 'consoleKeyPress') {
         if (consoleInputWaiting.length) {
             for(var w of consoleInputWaiting)
-                w(jsonReponse({ command: 'ok', text: cmd.text }));
+                w(jsonResponseWithQueuedMessages(process, { command: 'ok', text: cmd.text }));
             consoleInputWaiting = [];
         } else {
             consoleInput += cmd.text;
         }
     } else if (cmd.command === 'readConsole') {
         if (consoleInput.length) {
-            resolve(jsonReponse({ command: 'ok', text: consoleInput }));
+            resolve(jsonResponseWithQueuedMessages(process, { command: 'ok', text: consoleInput }));
             consoleInput = '';
         } else {
             consoleInputWaiting.push(resolve);
         }
     } else if (cmd.command === 'writeConsole') {
         writeConsole(cmd.text);
-        resolve(jsonReponse({ command: 'ok' }));
+        resolve(jsonResponseWithQueuedMessages(process, { command: 'ok' }));
     } else if (cmd.command === 'fork') {
         if (cmd.pid === 0)
             cmd.pid = 1;
         processes.push(new Process(cmd.pid));
         process.childPids.push(processes.length - 1);
-        resolve(jsonReponse({
+        resolve(jsonReponse([{
             command: 'ok',
             childPid: processes.length - 1,
             childCookie: processes[processes.length - 1].cookie,
-        }));
+        }]));
     } else if (cmd.command === 'spawn') {
         cmd.spawnRequest = process.spawnRequests.length;
-        if(cmd.pid)
+        if (cmd.pid)
             process.spawnRequests.push(resolve);
         masterPort.postMessage(cmd);
     } else if (cmd.command === 'processStarted') {
         if (cmd.spawnRequest < process.spawnRequests.length && process.spawnRequests[cmd.spawnRequest] !== null) {
-            process.spawnRequests[cmd.spawnRequest](jsonReponse({ command: 'ok', errno: cmd.errno }));
+            process.spawnRequests[cmd.spawnRequest](jsonReponse([{ command: 'ok', errno: cmd.errno }]));
             process.spawnRequests[cmd.spawnRequest] = null;
         }
-        resolve(jsonReponse({ command: 'ok' }));
+        // TODO: right now pending messages for the pid are all forwarded to the new
+        //       spawn at the next command. Should these be filtered?
+        resolve(jsonReponse([{ command: 'ok' }]));
     } else if (cmd.command === 'processExited') {
         processDied(cmd.pid, cmd.exitCode);
     } else {
-        resolve(jsonReponse({ command: 'terminate', reason: "I don't understand your command" }));
-        processDied(cmd.pid, 1);
+        resolve(jsonReponse([{ command: 'terminate', reason: "I don't understand your command" }]));
+        processDied(cmd.pid, 1); // TODO: what exit code?
     }
 }
 
@@ -112,11 +126,11 @@ this.addEventListener('fetch', function (e) {
 
     e.respondWith(new Promise(function (resolve) {
         e.request.json().then(function (cmd) {
-            if (!processGood(cmd.pid, cmd.cookie))
-                resolve(jsonReponse({ command: 'terminate', reason: "I don't know you" }));
+            if (!verifyProcess(cmd.pid, cmd.cookie))
+                resolve(jsonReponse([{ command: 'terminate', reason: "I don't know you" }]));
             processCmd(resolve, cmd);
         }).catch(function () {
-            resolve(jsonReponse({ command: 'terminate', reason: "exception processing request" }));
+            resolve(jsonReponse([{ command: 'terminate', reason: "exception processing request" }]));
         });
     }));
 });
@@ -124,11 +138,11 @@ this.addEventListener('fetch', function (e) {
 self.addEventListener('message', function (e) {
     if (!e.isTrusted)
         return;
-    if (processGood(e.data.pid, e.data.cookie)) {
+    if (verifyProcess(e.data.pid, e.data.cookie)) {
         new Promise(function (dummy) {
             processCmd(dummy, e.data);
         }).catch(function (e) {
-            console.log('caught exception processing message:', e);
+            console.log('service: caught exception processing message:', e);
         });
     }
 });

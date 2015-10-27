@@ -3,6 +3,7 @@
 var pid = 0;
 var cookie = 0;
 var terminated = false;
+var zombieChildren = [];
 const debugCommands = false;
 
 function terminateWorker() {
@@ -23,8 +24,7 @@ function sendSyncCmd(cmd) {
     req.open('POST', 'service', false);
     req.send(JSON.stringify(cmd));
     if (req.status !== 200) {
-        if (debugCommands)
-            console.log('worker', pid, ': received status:', req.status, ' for request:', cmd);
+        console.log('worker', pid, ': received status:', req.status, ' for request:', cmd);
         terminateWorker();
     }
 
@@ -33,17 +33,19 @@ function sendSyncCmd(cmd) {
         console.log('worker', pid, ': revd:', req.responseText);
     }
 
-    var result = JSON.parse(req.responseText);
-    if (result.command === 'terminate') {
-        if (debugCommands)
+    var results = JSON.parse(req.responseText);
+    for(var result of results) {
+        if (result.command === 'terminate') {
             console.log('worker', pid, ': received terminateWorker, reason: "' + result.reason + '" for request:', cmd);
-        terminateWorker();
-    } else if (result.command === 'ok') {
-        return result;
-    } else {
-        if (debugCommands)
+            terminateWorker();
+        } else if (result.command === 'childDied') {
+            zombieChildren.push(result);
+        } else if (result.command === 'ok') {
+            return result;
+        } else {
             console.log('worker', pid, ': received unrecognized result:', result, 'for request:', cmd);
-        terminateWorker();
+            terminateWorker();
+        }
     }
 }
 
@@ -76,7 +78,6 @@ function workerUnfork(status) {
 
 // TODO: send environment
 // TODO: send open file handles
-let dieBecauseOfSpawn = false;
 function workerSpawn(file, argv) {
     'use strict';
     file = Pointer_stringify(file);
@@ -97,7 +98,7 @@ function workerSpawn(file, argv) {
             cookie = forkedFromCookie;
             forked = false;
         } else
-            dieBecauseOfSpawn = true;
+            terminated = true;
     }
     return errno;
 }
@@ -177,10 +178,10 @@ addEventListener('message', function (e) {
         if (debugCommands)
             console.log('worker', pid, ': exception:', e);
         if (!EXITSTATUS)
-            EXITSTATUS = 1;
+            EXITSTATUS = 1; // TODO: what should this be?
     }
 
-    if (!dieBecauseOfSpawn)
-        sendSyncCmd({ command: 'processExited', exitCode: EXITSTATUS });
+    if (!terminated)
+        sendSyncCmd({ command: 'processExited', exitCode: EXITSTATUS & 0xff });
     self.close();
 });
