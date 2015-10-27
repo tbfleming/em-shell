@@ -21,8 +21,8 @@ function Process(parentPid) {
     this.parentPid = parentPid;
     this.status = 'running'; // running, zombie
     this.childPids = [];
-    this.spawnRequests = [];
     this.msgQueue = [];
+    this.waiting = null;
 }
 
 // Verify a process is valid. The cookie isn't for security; it's for making sure
@@ -37,18 +37,33 @@ function verifyProcess(pid, cookie) {
 }
 
 function processDied(pid, exitCode) {
+    if (pid < 2)
+        return;
     var process = processes[pid];
     process.status = 'zombie';
+    process.msgQueue = [];
+    process.waiting = null;
 
-    // TODO: process groups?
-    for(childPid of process.childPids)
-        processes[childPid].parentPid = 1;
-
-    if (process.parentPid > 1) {
-        var parentProcess = processes[process.parentPid];
-        if (parentProcess && parentProcess.status !== 'zombie')
-            parentProcess.msgQueue.push({ command: 'childDied', childPid: 'pid', exitCode: exitCode });
+    for(childPid of process.childPids) {
+        if (processes[childPid].status === 'zombie')
+            processes[childPid] = null;
+        else {
+            // TODO: signal these like init would do
+            // TODO: process groups?
+            processes[childPid].parentPid = 1;
+            processes[1].childPids.push(childPid);
+        }
     }
+    process.childPids = [];
+
+    var parentProcess = processes[process.parentPid];
+    let i = parentProcess.childPids.indexOf(pid);
+    if (i >= 0)
+        parentProcess.childPids.splice(i, 1);
+    if (process.parentPid > 1)
+        sendMsgToProcess(process.parentPid, { command: 'childDied', childPid: 'pid', exitCode: exitCode });
+    else
+        processes[pid] = null;
 }
 
 function jsonReponse(msg) {
@@ -62,6 +77,18 @@ function jsonResponseWithQueuedMessages(process, msg) {
     return jsonReponse(q);
 }
 
+function sendMsgToProcess(pid, msg) {
+    let process = processes[pid];
+    if (!process || process.status === 'zombie')
+        return;
+    if (process.waiting) {
+        process.waiting(jsonResponseWithQueuedMessages(process, msg));
+        process.waiting = null;
+    } else {
+        process.msgQueue.push(msg);
+    }
+}
+
 function processCmd(resolve, cmd) {
     let process = processes[cmd.pid];
     if (cmd.command == 'setMasterPort') {
@@ -71,7 +98,7 @@ function processCmd(resolve, cmd) {
     } else if (cmd.command == 'consoleKeyPress') {
         if (consoleInputWaiting.length) {
             for(var w of consoleInputWaiting)
-                w(jsonResponseWithQueuedMessages(process, { command: 'ok', text: cmd.text }));
+                sendMsgToProcess(w, { command: 'ok', text: cmd.text });
             consoleInputWaiting = [];
         } else {
             consoleInput += cmd.text;
@@ -81,7 +108,8 @@ function processCmd(resolve, cmd) {
             resolve(jsonResponseWithQueuedMessages(process, { command: 'ok', text: consoleInput }));
             consoleInput = '';
         } else {
-            consoleInputWaiting.push(resolve);
+            process.waiting = resolve;
+            consoleInputWaiting.push(cmd.pid);
         }
     } else if (cmd.command === 'writeConsole') {
         writeConsole(cmd.text);
@@ -97,15 +125,13 @@ function processCmd(resolve, cmd) {
             childCookie: processes[processes.length - 1].cookie,
         }]));
     } else if (cmd.command === 'spawn') {
-        cmd.spawnRequest = process.spawnRequests.length;
         if (cmd.pid)
-            process.spawnRequests.push(resolve);
+            process.waiting = resolve;
         masterPort.postMessage(cmd);
     } else if (cmd.command === 'processStarted') {
-        if (cmd.spawnRequest < process.spawnRequests.length && process.spawnRequests[cmd.spawnRequest] !== null) {
-            process.spawnRequests[cmd.spawnRequest](jsonReponse([{ command: 'ok', errno: cmd.errno }]));
-            process.spawnRequests[cmd.spawnRequest] = null;
-        }
+        if (process.waiting)
+            process.waiting(jsonReponse([{ command: 'ok', errno: cmd.errno }]));
+        process.waiting = null;
         // TODO: right now pending messages for the pid are all forwarded to the new
         //       spawn at the next command. Should these be filtered?
         resolve(jsonReponse([{ command: 'ok' }]));
