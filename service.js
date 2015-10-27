@@ -23,6 +23,7 @@ function Process(parentPid) {
     this.childPids = [];
     this.msgQueue = [];
     this.waiting = null;
+    this.waitingAllowsAsyncMessages = true;
 }
 
 // Verify a process is valid. The cookie isn't for security; it's for making sure
@@ -35,6 +36,25 @@ function verifyProcess(pid, cookie) {
         processes[pid].cookie === cookie &&
         processes[pid].status !== 'zombie');
 }
+
+function wait(process, resolve, waitingAllowsAsyncMessages) {
+    process.waiting = resolve;
+    process.waitingAllowsAsyncMessages = waitingAllowsAsyncMessages;
+}
+
+function callWaiting(process, response) {
+    process.waiting(response);
+    process.waiting = null;
+}
+
+function pingProcesses() {
+    for(var process of processes) {
+        if (process && process.waiting && process.waitingAllowsAsyncMessages) {
+            callWaiting(process, jsonReponse([{ command: 'ping' }]));
+        }
+    }
+}
+setInterval(pingProcesses, 10000);
 
 function processDied(pid, exitCode) {
     if (pid < 2)
@@ -81,12 +101,10 @@ function sendMsgToProcess(pid, msg) {
     let process = processes[pid];
     if (!process || process.status === 'zombie')
         return;
-    if (process.waiting) {
-        process.waiting(jsonResponseWithQueuedMessages(process, msg));
-        process.waiting = null;
-    } else {
+    if (process.waiting && process.waitingAllowsAsyncMessages)
+        callWaiting(process, jsonResponseWithQueuedMessages(process, msg));
+    else
         process.msgQueue.push(msg);
-    }
 }
 
 function processCmd(resolve, cmd) {
@@ -103,12 +121,14 @@ function processCmd(resolve, cmd) {
         } else {
             consoleInput += cmd.text;
         }
+    } else if (cmd.command === 'wait') {
+        wait(process, resolve, true);
     } else if (cmd.command === 'readConsole') {
         if (consoleInput.length) {
             resolve(jsonResponseWithQueuedMessages(process, { command: 'ok', text: consoleInput }));
             consoleInput = '';
         } else {
-            process.waiting = resolve;
+            wait(process, resolve, true);
             consoleInputWaiting.push(cmd.pid);
         }
     } else if (cmd.command === 'writeConsole') {
@@ -126,12 +146,11 @@ function processCmd(resolve, cmd) {
         }]));
     } else if (cmd.command === 'spawn') {
         if (cmd.pid)
-            process.waiting = resolve;
+            wait(process, resolve, false);
         masterPort.postMessage(cmd);
     } else if (cmd.command === 'processStarted') {
         if (process.waiting)
-            process.waiting(jsonReponse([{ command: 'ok', errno: cmd.errno }]));
-        process.waiting = null;
+            callWaiting(process, jsonReponse([{ command: 'ok', errno: cmd.errno }]));
         // TODO: right now pending messages for the pid are all forwarded to the new
         //       spawn at the next command. Should these be filtered?
         resolve(jsonReponse([{ command: 'ok' }]));

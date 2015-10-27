@@ -12,45 +12,49 @@ function terminateWorker() {
 }
 
 function sendSyncCmd(cmd) {
-    if (terminated)
-        terminateWorker();
-    cmd.pid = pid;
-    cmd.cookie = cookie;
-
-    if (debugCommands)
-        console.log('worker', pid, ': send:', cmd);
-
-    var req = new XMLHttpRequest();
-    req.open('POST', 'service', false);
-    req.send(JSON.stringify(cmd));
-    if (req.status !== 200) {
-        console.log('worker', pid, ': received status:', req.status, ' for request:', cmd);
-        terminateWorker();
-    }
-
-    if (debugCommands) {
-        console.log('worker', pid, ': sent:', cmd);
-        console.log('worker', pid, ': revd:', req.responseText);
-    }
-
-    var results = JSON.parse(req.responseText);
-    for(var result of results) {
-        if (result.command === 'terminate') {
-            console.log('worker', pid, ': received terminateWorker, reason: "' + result.reason + '" for request:', cmd);
+    let sendThis = cmd;
+    while(true) {
+        if (terminated)
             terminateWorker();
-        } else if (result.command === 'childDied') {
-            zombieChildren.push(result);
-        } else if (result.command === 'ok') {
-            return result;
-        } else {
-            console.log('worker', pid, ': received unrecognized result:', result, 'for request:', cmd);
+        cmd.pid = pid;
+        cmd.cookie = cookie;
+
+        if (debugCommands)
+            console.log('worker', pid, ': send:', sendThis);
+
+        var req = new XMLHttpRequest();
+        req.open('POST', 'service', false);
+        req.send(JSON.stringify(sendThis));
+        if (req.status !== 200) {
+            console.log('worker', pid, ': received status:', req.status, ' for request:', cmd);
             terminateWorker();
         }
+
+        if (debugCommands) {
+            console.log('worker', pid, ': sent:', cmd);
+            console.log('worker', pid, ': revd:', req.responseText);
+        }
+
+        var results = JSON.parse(req.responseText);
+        for(var result of results) {
+            if (result.command === 'terminate') {
+                console.log('worker', pid, ': received terminateWorker, reason: "' + result.reason + '" for request:', cmd);
+                terminateWorker();
+            } else if (result.command === 'childDied') {
+                zombieChildren.push(result);
+            } else if (result.command === 'ok') {
+                return result;
+            } else if (result.command !== 'ping') {
+                console.log('worker', pid, ': received unrecognized result:', result, 'for request:', cmd);
+                terminateWorker();
+            }
+        }
+        sendThis = { command: 'wait', pid: cmd.pid, cookie: cmd.cookie };
     }
 }
 
 function print(x) {
-    sendSyncCmd({ command: 'writeConsole', text: x });
+    sendSyncCmd({ command: 'writeConsole', text: x + '' });
 }
 
 function stdin() {
