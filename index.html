@@ -1,10 +1,7 @@
 <!doctype html>
 <link rel="stylesheet" type="text/css" href="js/index.css">
-<script src="jspm_packages/system.js"></script>
-<script src="config.js"></script>
-<script>
-    System.import('js/console.js');
-</script>
+<script src="js/require.js"></script>
+<script src="js/console.js"></script>
 <body>
     <div id="console"></div>
     <br />
@@ -14,10 +11,8 @@
             <li>Tab completion partially works</li>
             <li>Up and Down arrows move through history</li>
             <li>Scrollback: use mouse wheel or Shift+PgUp, Shift+PgDn</li>
-            <li>If you leave it idle for a couple minutes then it will hang</li>
             <li>
                 vfork-exec commands:<ul>
-                    <li>The shell does not wait for these to exit before showing a new prompt</li>
                     <li>Each process gets a new filesystem (ram based)</li>
                     <li>Pipes don't work</li>
                     <li>Redirection only works for built-in commands, not for vfork-exec commands</li>
@@ -29,8 +24,8 @@
         <h1>Examples</h1><code>
             <pre>
 ls -lR
-echo "test file" > myfile   # create file
-read var < myfile           # read file
+echo "test file" &gt; myfile   # create file
+read var &lt; myfile           # read file
 echo $var                   # show file content
 ls -la                      # can't see myfile (different filesystem)
 </pre>

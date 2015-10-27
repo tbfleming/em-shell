@@ -4,11 +4,9 @@ Go to https://tbfleming.github.io/em-shell/
 
 # Current status
 * Runs on Chrome
-* Firefox doesn't work yet
-  * bug in my service worker detection code? I copied and pasted from MDN.
+* Firefox doesn't work yet; its service worker implementation is under development
 * Some built-in commands work
 * Some vfork-exec commands work
-* Crashes after a couple minutes of inactivity
 * Gets confused when the terminal page has more than 1 tab or window opened on it
 
 # How it works
@@ -24,7 +22,6 @@ Go to https://tbfleming.github.io/em-shell/
 
 * Linux (tested with Ubuntu 15.04 Server)
 * Node (tested with 4.2.1)
-* jspm (tested with 0.16.12)
 * Emscripten (tested with 1.35.2)
   * Create a symlink: emgcc -> emcc
 
@@ -32,7 +29,6 @@ Go to https://tbfleming.github.io/em-shell/
     git clone https://github.com/tbfleming/em-shell.git
     git clone https://github.com/tbfleming/em-busybox.git
     cd em-shell
-    jspm install
     either:
         js/build-busybox
         js/build-busybox-dbg
