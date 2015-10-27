@@ -9,5 +9,9 @@ mergeInto(LibraryManager.library, {
 
     js_spawn: function (file, argv) {
         return workerSpawn(file, argv);
+    },
+
+    js_waitpid: function(childPid, statusPtr, options){
+        return workerWaitpid(childPid, statusPtr, options);
     }
 });

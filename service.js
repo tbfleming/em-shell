@@ -40,6 +40,8 @@ function verifyProcess(pid, cookie) {
 function wait(process, resolve, waitingAllowsAsyncMessages) {
     process.waiting = resolve;
     process.waitingAllowsAsyncMessages = waitingAllowsAsyncMessages;
+    if(process.waitingAllowsAsyncMessages && process.msgQueue.length)
+        callWaiting(process, jsonReponse([{ command: 'ping' }]));
 }
 
 function callWaiting(process, response) {
@@ -123,6 +125,8 @@ function processCmd(resolve, cmd) {
         }
     } else if (cmd.command === 'wait') {
         wait(process, resolve, true);
+    } else if (cmd.command === 'ping') {
+        resolve(jsonResponseWithQueuedMessages(process, { command: 'ping' }));
     } else if (cmd.command === 'readConsole') {
         if (consoleInput.length) {
             resolve(jsonResponseWithQueuedMessages(process, { command: 'ok', text: consoleInput }));

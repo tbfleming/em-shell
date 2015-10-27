@@ -7,7 +7,6 @@ Go to https://tbfleming.github.io/em-shell/
 * Firefox doesn't work yet; its service worker implementation is under development
 * Some built-in commands work
 * Some vfork-exec commands work
-* Crashes after a couple minutes of inactivity
 * Gets confused when the terminal page has more than 1 tab or window opened on it
 
 # How it works
