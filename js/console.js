@@ -99,8 +99,6 @@ require(["js/term.js-0.0.7/src/term.js"], function () {
                     term.write(e.data.text.replace('\n', '\r\n'));
                 }
             } else if (e.data.command == 'spawn') {
-                e.data.port.postMessage({ command: 'ok', errno: 0 }); // TODO: report real status
-                e.data.port = null;
                 spawn('bin/busybox', e.data); // TODO: process e.data.file
             }
         };

@@ -21,6 +21,7 @@ function Process(parentPid) {
     this.parentPid = parentPid;
     this.status = 'running'; // running, zombie
     this.childPids = [];
+    this.spawnRequests = [];
 }
 
 // Verify a process is valid. The cookie isn't for security; it's for making sure
@@ -50,6 +51,7 @@ function jsonReponse(j) {
 }
 
 function processCmd(resolve, cmd) {
+    let process = processes[cmd.pid];
     if (cmd.command == 'setMasterPort') {
         masterPort = cmd.port;
         masterPort.postMessage({ command: 'writeConsole', serviceVersion: serviceVersion, text: consoleOutput });
@@ -76,20 +78,28 @@ function processCmd(resolve, cmd) {
         if (cmd.pid === 0)
             cmd.pid = 1;
         processes.push(new Process(cmd.pid));
-        processes[cmd.pid].childPids.push(processes.length - 1);
+        process.childPids.push(processes.length - 1);
         resolve(jsonReponse({
             command: 'ok',
             childPid: processes.length - 1,
             childCookie: processes[processes.length - 1].cookie,
         }));
     } else if (cmd.command === 'spawn') {
-        var messageChannel = new MessageChannel();
-        messageChannel.port1.onmessage = function (e) { resolve(jsonReponse(e.data)) };
-        cmd.port = messageChannel.port2;
-        masterPort.postMessage(cmd, [messageChannel.port2]);
+        cmd.spawnRequest = process.spawnRequests.length;
+        if(cmd.pid)
+            process.spawnRequests.push(resolve);
+        masterPort.postMessage(cmd);
+    } else if (cmd.command === 'processStarted') {
+        if (cmd.spawnRequest < process.spawnRequests.length && process.spawnRequests[cmd.spawnRequest] !== null) {
+            process.spawnRequests[cmd.spawnRequest](jsonReponse({ command: 'ok', errno: cmd.errno }));
+            process.spawnRequests[cmd.spawnRequest] = null;
+        }
+        resolve(jsonReponse({ command: 'ok' }));
+    } else if (cmd.command === 'processExited') {
+        processDied(cmd.pid, cmd.exitCode);
     } else {
         resolve(jsonReponse({ command: 'terminate', reason: "I don't understand your command" }));
-        processDied(cmd.pid);
+        processDied(cmd.pid, 1);
     }
 }
 
