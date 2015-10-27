@@ -5,6 +5,8 @@ require(["js/term.js-0.0.7/src/term.js"], function () {
     var term = new Terminal({});
     let verboseService = false;
     let activeService = null;
+    let serviceVersion = 'x.y';
+    let receivedServiceVersion = false;
 
     //let line = '';
     //term.on('data', function (data) {
@@ -85,10 +87,19 @@ require(["js/term.js-0.0.7/src/term.js"], function () {
 
         let messageChannel = new MessageChannel();
         messageChannel.port1.onmessage = e => {
-            if (e.data.command == 'writeConsole')
-                term.write(e.data.text.replace('\n', '\r\n'));
-            else if(e.data.command == 'spawn') {
-                e.data.port.postMessage({command:'ok', errno:0}); // TODO: report real status
+            if (e.data.command == 'writeConsole') {
+                if (!receivedServiceVersion && e.data.serviceVersion != serviceVersion) {
+                    log('Expected service worker version: ' + serviceVersion);
+                    log('Received service worker version: ' + e.data.serviceVersion + '\r\n');
+                    log('Leave this page then come back to refresh versions, or');
+                    log('*shift-click* the refresh button.');
+                    messageChannel.port1.close();
+                } else {
+                    receivedServiceVersion = true;
+                    term.write(e.data.text.replace('\n', '\r\n'));
+                }
+            } else if (e.data.command == 'spawn') {
+                e.data.port.postMessage({ command: 'ok', errno: 0 }); // TODO: report real status
                 e.data.port = null;
                 spawn('bin/busybox', e.data); // TODO: process e.data.file
             }
@@ -110,5 +121,18 @@ require(["js/term.js-0.0.7/src/term.js"], function () {
     }
 
     term.open(document.getElementById('console'));
-    startService();
+
+    fetch('service.js')
+        .then(r => {
+            if (r.status != 200)
+                throw r.status;
+            return r.text();
+        })
+        .then(t => {
+            serviceVersion = (new RegExp("serviceVersion = '([^']*)'")).exec(t)[1];
+            startService();
+        })
+        .catch(e => {
+            log(e + ' while fetching service.js');
+        });
 });

@@ -1,5 +1,6 @@
 'use strict';
 
+var serviceVersion = '0.0.2';
 var serviceUrl = this.registration.scope + 'service';
 var consoleInput = '';
 var consoleInputWaiting = [];
@@ -51,7 +52,7 @@ function jsonReponse(j) {
 function processCmd(resolve, cmd) {
     if (cmd.command == 'setMasterPort') {
         masterPort = cmd.port;
-        masterPort.postMessage({ command: 'writeConsole', text: consoleOutput });
+        masterPort.postMessage({ command: 'writeConsole', serviceVersion: serviceVersion, text: consoleOutput });
         consoleOutput = '';
     } else if (cmd.command == 'consoleKeyPress') {
         if (consoleInputWaiting.length) {

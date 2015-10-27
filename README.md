@@ -4,8 +4,7 @@ Go to https://tbfleming.github.io/em-shell/
 
 # Current status
 * Runs on Chrome
-* Firefox doesn't work yet
-  * bug in my service worker detection code? I copied and pasted from MDN.
+* Firefox doesn't work yet; its service worker implementation is under development
 * Some built-in commands work
 * Some vfork-exec commands work
 * Crashes after a couple minutes of inactivity
