@@ -3,8 +3,7 @@
 Go to https://tbfleming.github.io/em-shell/
 
 # Current status
-* Runs on Chrome
-* Firefox doesn't work yet; its service worker implementation is under development
+* Runs on Chrome and Firefox
 * Some built-in commands work
 * Some vfork-exec commands work
 * Gets confused when the terminal page has more than 1 tab or window opened on it
