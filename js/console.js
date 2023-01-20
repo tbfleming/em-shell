@@ -99,7 +99,7 @@ require(["js/term.js-0.0.7/src/term.js"], function () {
                 } else {
                     receivedServiceVersion = true;
                     term.write(e.data.text.replace('\n', '\r\n'));
-                    spawn('bin/busybox', {
+                    spawn('bin/busybox.js', {
                         'pid': 0,
                         'cookie': 0,
                         'command': 'spawn',
