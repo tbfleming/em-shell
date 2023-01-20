@@ -103,12 +103,12 @@ require(["js/term.js-0.0.7/src/term.js"], function () {
                         'pid': 0,
                         'cookie': 0,
                         'command': 'spawn',
-                        'file': 'bin/busybox',
+                        'file': 'bin/busybox.js',
                         'args': ['/bin/sh']
                     });
                 }
             } else if (e.data.command == 'spawn') {
-                spawn('bin/busybox', e.data); // TODO: process e.data.file
+                spawn('bin/busybox.js', e.data); // TODO: process e.data.file
             }
         };
 
